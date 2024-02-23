@@ -1,3 +1,21 @@
+/*
+
+Basic code template for the ESP32 to debug or print serial over WIFI.
+
+Required hardware:
+-ESP32
+
+Libaries:
+-WebSerial by Ayush Sharma
+-ESPAsyncWebServer by lacamera
+-AsyncTCP by dvarrel
+
+Tutorial Guidance:
+- https://randomnerdtutorials.com/esp32-webserial-library/
+
+*/
+
+
 #include <Arduino.h>
 #include <WiFi.h>
 #include <AsyncTCP.h>
@@ -7,19 +25,16 @@
 
 AsyncWebServer server(80);
 
-const char* ssid = "JvvHuisAP";          // Your WiFi SSID
-const char* password = "aweMAsekind";  // Your WiFi Password
+const char* ssid = "yourwifiname";          // Your WiFi SSID
+const char* password = "yourwifipassword";  // Your WiFi Password
 
-#define BOARD_BAT_ADC_PIN    35
-
-float batteryVoltage = 0.0;
-
-uint32_t readADC_Cal(int ADC_Raw)
-{
-    esp_adc_cal_characteristics_t adc_chars;
-
-    esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 1100, &adc_chars);
-    return (esp_adc_cal_raw_to_voltage(ADC_Raw, &adc_chars));
+void recvMsg(uint8_t *data, size_t len){
+  WebSerial.println("Received Data...");
+  String d = "";
+  for(int i=0; i < len; i++){
+    d += char(data[i]);
+  }
+  WebSerial.println(d);  
 }
 
 void setup() {
@@ -35,26 +50,14 @@ void setup() {
   Serial.println(WiFi.localIP());
   // WebSerial is accessible at "<IP Address>/webserial" in browser
   WebSerial.begin(&server);
-  //WebSerial.msgCallback(recvMsg);
+  WebSerial.msgCallback(recvMsg);
 
   server.begin();
   Serial.println("Ready");
 }
 
-char buf[256];
 
 void loop() {
   WebSerial.println("Hello!");
-
-  esp_adc_cal_characteristics_t adc_chars;
-  esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 1100, &adc_chars);
-  uint16_t battery_voltage = esp_adc_cal_raw_to_voltage(analogRead(BOARD_BAT_ADC_PIN), &adc_chars) * 2;
-
-  snprintf(buf, 256, "Battery:%umV", battery_voltage);
-
-  WebSerial.println(buf);
-
-  WebSerial.println(readADC_Cal(BOARD_BAT_ADC_PIN));
-
   delay(5000);
 }
